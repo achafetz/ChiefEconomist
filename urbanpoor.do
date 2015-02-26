@@ -549,13 +549,13 @@ use "$output/urbanpov.dta", clear
 	sort region year
 	levelsof region, local(levels)	
 	foreach r of local levels{	
-		twoway (connected region_yrly_avg year if region==1, lcolor(gs13) mcolor(gs13)) ///
-			(connected region_yrly_avg year if region==2, lcolor(gs13) mcolor(gs13)) ///	
-			(connect region_yrly_avg year if region==3, lcolor(gs13) mcolor(gs13)) ///
-			(connect region_yrly_avg year if region==4, lcolor(gs13) mcolor(gs13)) ///
-			(connect region_yrly_avg year if region==5, lcolor(gs13) mcolor(gs13)) /// 
-			(connect region_yrly_avg year if region==6, lcolor(gs13) mcolor(gs13)) ///
-			(connected region_yrly_avg year if region==`r', lcolor(emerald) mcolor(emerald)), ///
+		twoway (connected region_yrly_avg year if region==1, msymbol(o) lcolor(gs13) mcolor(gs13)) ///
+			(connected region_yrly_avg year if region==2, msymbol(o)lcolor(gs13) mcolor(gs13)) ///	
+			(connect region_yrly_avg year if region==3, msymbol(o)lcolor(gs13) mcolor(gs13)) ///
+			(connect region_yrly_avg year if region==4, msymbol(o)lcolor(gs13) mcolor(gs13)) ///
+			(connect region_yrly_avg year if region==5, msymbol(o)lcolor(gs13) mcolor(gs13)) /// 
+			(connect region_yrly_avg year if region==6, msymbol(o)lcolor(gs13) mcolor(gs13)) ///
+			(connected region_yrly_avg year if region==`r', msymbol(o)lcolor(emerald) mcolor(emerald)), ///
 			title("`: label (region) `r''") ///
 			legend(off) ///
 			ylabel(0(20)80, labsize(small)) ///
