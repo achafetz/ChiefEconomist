@@ -65,14 +65,14 @@ set more off
 
 * install the confirm directory ado if not already installed
 	local required_ados fs    
-		foreach x of local required_ados { 
-			capture findfile `x'.ado
-				if _rc==601 {
-					cap ssc install `x'
-				}
-				else disp in yellow "`x' currently installed."
+	foreach x of local required_ados { 
+		capture findfile `x'.ado
+			if _rc==601 {
+				cap ssc install `x'
 			}
-		*end
+			else disp in yellow "`x' currently installed."
+			}
+	*end
 		
 		
 ********************************************
@@ -575,8 +575,8 @@ use "$output/urbanpov.dta", clear
 				xline(2015, lcolor(gs14))
 			}
 		graph export "$graph/urbanpop_reg`r'.pdf", replace	
-		}
-		*end
+	}
+	*end
 		
 
 
