@@ -63,7 +63,18 @@ set more off
 	global graph "$projectpath\UrbanPoverty\StataFigures\"
 	global excel "$projectpath\UrbanPoverty\ExcelOutput\"
 
-	
+* install the confirm directory ado if not already installed
+	local required_ados fs    
+		foreach x of local required_ados { 
+			capture findfile `x'.ado
+				if _rc==601 {
+					cap ssc install `x'
+				}
+				else disp in yellow "`x' currently installed."
+			}
+		*end
+		
+		
 ********************************************
 ** Copy data manually into RawData folder **
 ********************************************
@@ -312,9 +323,19 @@ note: Source: Povcal Net
 *drop non-developing countries
 	tab country if group==. //list all non-developing countries dropping
 	drop if group==. // only developing countries remain in dataset
+
+*clear out intermediary .dta files
+	cd "$projectpath\UrbanPoverty\StataOutput\"
+	fs *
+	foreach f in `r(files)'{
+		di "removing `f'"
+		erase "`f'"
+		}
+		*end
 *save
+	cd "$projectpath"
 	save "$output/urbanpov.dta", replace
-	
+
 ********************************************************************************
 ********************************************************************************
 
@@ -364,7 +385,7 @@ use "$output/urbanpov.dta", clear
 			title("Percent of Urban Population Below $1.25 (PPP) Per Day") ///
 			sub("`: label (group) `g''") ///
 			note("Source: Povcal Net"))
-		graph export "$graph/urbanpoor_cat`g'.png", replace
+		graph export "$graph/urbanpoor_cat`g'.pdf", replace
 		}
 		*end
 
@@ -388,7 +409,7 @@ use "$output/urbanpov.dta", clear
 		ytitle("Percent") ///
 		legend(order (1 "Feed the Future" 2 "USAID (non-FtF)" 3 "All developing") ///
 		size(small) rows(1))
-	graph export "$graph/urbanpoor.png", replace	
+	graph export "$graph/urbanpoor.pdf", replace	
 	
 * look for outliers for certain groups and years based on graph
 	/*	-1994, Other
@@ -466,7 +487,7 @@ use "$output/urbanpov.dta", clear
 		yline(50, lpattern(dash) lcolor(gs12)) /// 
 		xlabel(1950(25)2050) ///
 		xline(2015, lcolor(gs14))
-	graph export "$graph/urbanpop.png", replace	
+	graph export "$graph/urbanpop.pdf", replace	
  
 
 
@@ -516,8 +537,8 @@ use "$output/urbanpov.dta", clear
 		yline(50, lpattern(dash) lcolor(gs12)) /// 
 		xlabel(1950(25)2050, labsize(vsmall)) ///
 		xline(2015, lcolor(gs14))
-	graph export "$graph/urbanpop_reg_comb.png", replace
-		
+	graph export "$graph/urbanpop_reg_comb.pdf", replace	
+	
 * individual graphs for each region
 	sort year region group
 	levelsof region, local(levels)	
@@ -553,7 +574,7 @@ use "$output/urbanpov.dta", clear
 				xlabel(1950(25)2050) ///
 				xline(2015, lcolor(gs14))
 			}
-		graph export "$graph/urbanpop_reg`r'.png", replace	
+		graph export "$graph/urbanpop_reg`r'.pdf", replace	
 		}
 		*end
 		
@@ -637,7 +658,7 @@ use "$output/urbanpov.dta", clear
 		yline(1, lpattern(dash) lcolor(gs12)) ///
 		xlabel(1950(25)2050) ///
 		xline(2015, lcolor(gs14))
-	graph export "$graph/urbruralratio.png", replace	
+	graph export "$graph/urbruralratio.pdf", replace	
  
 
 *graph individual countries by category for urban/rural ratio
@@ -652,7 +673,7 @@ use "$output/urbanpov.dta", clear
 			yline(1, lpattern(dash) lcolor(gs12)) ///
 			xlabel(1950(25)2050) ///
 			xline(2015, lcolor(gs14))
-		graph export "$graph/urbruralratio_cat`g'.png", replace
+		graph export "$graph/urbruralratio_cat`g'.pdf", replace
 		di "`: label (group) `g'' graph generated & saved"
 		}
 		*end
