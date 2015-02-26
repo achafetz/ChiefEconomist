@@ -65,14 +65,14 @@ set more off
 
 * install the confirm directory ado if not already installed
 	local required_ados fs    
-	foreach x of local required_ados { 
-		capture findfile `x'.ado
-			if _rc==601 {
-				cap ssc install `x'
+		foreach x of local required_ados { 
+			capture findfile `x'.ado
+				if _rc==601 {
+					cap ssc install `x'
+				}
+				else disp in yellow "`x' currently installed."
 			}
-			else disp in yellow "`x' currently installed."
-			}
-	*end
+		*end
 		
 		
 ********************************************
@@ -512,14 +512,71 @@ use "$output/urbanpov.dta", clear
 		order wbnum country wbcode year
 
 * create average for each year
-	egen region_yrly_avg = mean(urbpop), by(region group) 
-		lab var region_yrly_avg "Avg % urban poor by region & group & year"
+	egen yrly_avg = mean(urbpop), by(year) 
+		lab var yrly_avg "Avg % urban poor by region & year"
+	
+* create average for each region & year
+	egen region_yrly_avg = mean(urbpop), by(year region) 
+		lab var region_yrly_avg "Avg % urban poor by region & year"
 		
-* create average for each region  country & year
+* create average for each region, country & year
 	egen region_group_yrly_avg = mean(urbpop), by(year region group) 
 		lab var region_group_yrly_avg "Avg % urban poor by region & group & year"
 
-* graph combined region plot	
+*graph regional trends (all developing, single plot)
+	sort region year
+	twoway (connected region_yrly_avg year if region==1, msymbol(O)) ///
+		(connected region_yrly_avg year if region==2, msymbol(D)) ///	
+		(connect region_yrly_avg year if region==3, msymbol(T)) ///
+		(connect region_yrly_avg year if region==4, msymbol(S)) ///
+		(connect region_yrly_avg year if region==5, msymbol(O) mfcolor(white)) /// 
+		(connect region_yrly_avg year if region==6, msymbol(D) mfcolor(white)), ///
+		title("Mean Urban Population Percentage") ///
+		sub("Developing countries, 1950-2050") ///
+		note("Sources: UN, World Bank/WDI, & USAID") 	///
+		legend(order (1 "East Asia & Pacific" 2 "Europe & Central Asia" ///
+			3 "Latin America & Caribbean" 4 "Middle East & North Africa" ///
+			5 "South Asia" 6 "Sub-Saharan Africa") ///
+		size(small)) ///
+		ytitle("Percent") ///
+		ylabel(0(20)80) ///
+		yline(50, lpattern(dash) lcolor(gs12)) /// 
+		xlabel(1950(25)2050) ///
+		xline(2015, lcolor(gs14))
+	graph export "$graph/urbanpop_reg_alldev.pdf", replace
+
+* graph regional trends (all developing, maxtrix plot)
+	sort region year
+	levelsof region, local(levels)	
+	foreach r of local levels{	
+		twoway (connected region_yrly_avg year if region==1, lcolor(gs13) mcolor(gs13)) ///
+			(connected region_yrly_avg year if region==2, lcolor(gs13) mcolor(gs13)) ///	
+			(connect region_yrly_avg year if region==3, lcolor(gs13) mcolor(gs13)) ///
+			(connect region_yrly_avg year if region==4, lcolor(gs13) mcolor(gs13)) ///
+			(connect region_yrly_avg year if region==5, lcolor(gs13) mcolor(gs13)) /// 
+			(connect region_yrly_avg year if region==6, lcolor(gs13) mcolor(gs13)) ///
+			(connected region_yrly_avg year if region==`r', lcolor(emerald) mcolor(emerald)), ///
+			title("`: label (region) `r''") ///
+			legend(off) ///
+			ylabel(0(20)80, labsize(small)) ///
+			yline(50, lpattern(dash) lcolor(gs12)) ///
+			ytitle("") ///
+			xtitle("") ///
+			xlabel(1950(25)2050, labsize(vsmall)) ///
+			xline(2015, lcolor(gs14)) ///
+			nodraw ///
+			name(r`r', replace)
+		}	
+		*end
+	graph combine r1 r2 r3 r4 r5 r6, ///
+		title("Mean Urban Population Percentage") ///
+		sub("Developing countries, 1950-2050") ///
+		note("Sources: UN, World Bank/WDI, & USAID") ///
+		l1title("Percent") ///
+		b1title("Year")
+	graph export "$graph/urbanpop_reg_alldev_comb.pdf", replace
+
+* graph combined region matrix plot	
 	sort year region group
 	twoway (scatter region_group_yrly_avg year if group==1, ///
 		msymbol(smcircle) connect(l)) ///
@@ -575,9 +632,9 @@ use "$output/urbanpov.dta", clear
 				xline(2015, lcolor(gs14))
 			}
 		graph export "$graph/urbanpop_reg`r'.pdf", replace	
-	}
-	*end
-		
+		}
+		*end
+
 
 
 ** Urban to Rural Ratio **
