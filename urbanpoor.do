@@ -1,9 +1,9 @@
 ***************************
-**      Urban Poor       **
+**     Urban Poverty     **
 **                       **
 **     Aaron Chafetz     **
 **     USAID/E3/PLC      **
-**     Feb 26, 2014      **
+**     Feb 27, 2014      **
 ***************************
 
 /* Data sources
@@ -83,7 +83,7 @@ set more off
 ********************************************************************************
 ********************************************************************************
 
-// COUNTRY INFO //
+// COUNTRY INFO: IMPORT AND CLEANING //
 
 note: Compiled Feb 19, 2014 ///
 	  Sources: ///
@@ -148,7 +148,7 @@ note: Compiled Feb 19, 2014 ///
 ********************************************************************************
 ********************************************************************************
 
-// POVCAL DATA //
+// POVCAL DATA: IMPORT AND CLEANING  //
 
 note: Proportion of population below $1.25 (PPP)) per day
 note: Source: Povcal Net
@@ -198,7 +198,7 @@ note: Source: Povcal Net
 ********************************************************************************
 ********************************************************************************
 
-// UN DATA //
+// UN DATA: IMPORT AND CLEANING //
 
 ** Import & Combine **
 	note: source: UN Population Division, June 2014
@@ -686,7 +686,7 @@ use "$output/urbanpov.dta", clear
 
 *merge with rural population
 	merge 1:1 wbnum year using "$output/ruralpop_long", nogen
-
+	
 *generate ratio
 	gen urbruralratio = urbpop/ruralpop
 		lab var urbruralratio "Ratio of Urban to Rural Population"
