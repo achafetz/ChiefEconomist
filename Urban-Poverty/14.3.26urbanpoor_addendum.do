@@ -4,6 +4,7 @@
 **     Aaron Chafetz     **
 **     USAID/E3/PLC      **
 **     Mar 25, 2014      **
+**	  updated 5.26.14    **
 ***************************
 
 /* Data sources
@@ -132,7 +133,9 @@ use "$output/urbanpov.dta", clear
 		rename data9 rurpov
 	lab var data10 `"Total Poverty (Avg Annual Rate of Population Change over past 5 years)"'
 		rename data10 totpov
-	
+*export
+	export excel "$excel/ubranpov.xlsx", firstrow(var) sheet("UN_countries_all") sheetreplace
+		
 *remove years outside out focus range
 	drop if year<2009 | year>2012
 *last occurance in range
@@ -149,7 +152,7 @@ use "$output/urbanpov.dta", clear
 	lab var urbpov_latest "Latest Urban Poverty Observation"
 	lab var rurpov_latest_yr "Year of Lastest Rural Poverty Observation"
 	lab var rurpov_latest "Latest Rural Poverty Observation"
-	
+
 *encode string vars for collapsing - country and wbcode
 	encode country, gen(ctry)
 		drop country
@@ -172,7 +175,7 @@ use "$output/urbanpov.dta", clear
 	lab var urbpop2010 "Urban Population (2010)"
 	lab var rurpop2010 "Rural Population (2010)"
 	lab var totpop2010 "Total Population (2010)"
-	
+
 *collapse for 1 country observation in range
 	*save variable labels
 	foreach v of var * {
@@ -203,19 +206,15 @@ use "$output/urbanpov.dta", clear
 
 *save
 	save "$output/urbanpovlong.dta", replace
-	export excel "$excel/ubranpov.xlxs", sheet("countries") sheetreplace
+	export excel "$excel/ubranpov.xlsx", firstrow(var) sheet("countries") sheetreplace
+	
 ********************************************************************************
 ********************************************************************************
 
 use "$output/urbanpovlong.dta", clear
 
 // REGIONAL DATA //
-		
-*number of countries (non-missing) in region
-	bysort region: egen cntry_count = count(country) ///
-		if totpov_latest!=. & urbpov_latest!=. & rurpov_latest!=.
-	lab var cntry_count "Number of countries in region (with non-missing poverty data)"
-	
+
 *numer of poor
 	gen rurpov_num = rurpov_latest * rurpop2010 
 		lab var rurpov_num "Number of rural poor"
@@ -228,6 +227,19 @@ use "$output/urbanpovlong.dta", clear
 	gen urbsh = (urbpov_num/totpov_num)*100
 		lab var urbsh "Urban share of poverty"
 		
+*number of countries (non-missing) for necessary variables
+	*bysort region: egen cntry_count = count(country) ///
+		*if totpov_latest!=. & urbpov_latest!=. & rurpov_latest!=.
+	*lab var cntry_count "Number of countries in region (with non-missing poverty data)"
+	
+	bysort region: egen cntry_count_rurpov = count(country)	if rurpov_latest!=.
+		lab var cntry_count_rurpov "Number of countries in region (with non-missing rural poverty data)"
+	bysort region: egen cntry_count_urbpov = count(country)	if urbpov_latest!=.
+		lab var cntry_count_rurpov "Number of countries in region (with non-missing urban poverty data)"
+	bysort region: egen cntry_count_urbsh = count(country)	if urbsh!=.
+		lab var cntry_count_rurpov "Number of countries in region (with non-missing urban share data)"
+
+		
 *collapse to regional level
 	*save variable labels
 		foreach v of var * {
@@ -237,7 +249,7 @@ use "$output/urbanpovlong.dta", clear
 				}
 		}
 	*end
-	collapse (max) cntry_count (sum) rurpov_latest urbpov_latest ///
+	collapse (max) cntry_count_* (sum) rurpov_latest urbpov_latest ///
 		rurpov_num urbpov_num totpov_num urbsh rurpop2010 urbpop2010, by(region) 
 	drop if region==.
 	*re-attach variable labels
@@ -246,9 +258,9 @@ use "$output/urbanpovlong.dta", clear
 		}
 		*end
 *Regional average headcounts
-	gen reg_avghc_rur = rurpov_latest/cntry_count
+	gen reg_avghc_rur = rurpov_latest/cntry_count_rurpov
 		lab var reg_avghc_rur "Regional average rural headcount"
-	gen reg_avghc_urb = urbpov_latest/cntry_count
+	gen reg_avghc_urb = urbpov_latest/cntry_count_urbpov
 		lab var reg_avghc_urb "Regional average urban headcount"
 	format reg_avghc* %9.1fc
 		
@@ -261,12 +273,14 @@ use "$output/urbanpovlong.dta", clear
 	
 *Urban share average
 	
-	gen reg_avgurbsh = urbsh/cntry_count
+	gen reg_avgurbsh = urbsh/cntry_count_urbsh
 		lab var reg_avgurbsh "Regional average urban share of poverty"
 	gen reg_urbsh = (urbpov_num/totpov_num)*100
-		lab var reg_avgurbsh "Regional urban share of poverty"
+		lab var reg_urbsh "Regional urban share of poverty"
 	format reg_avgurbsh reg_urbsh %9.1fc
 
-export excel reg_avghc_rur reg_avghc_urb reg_hc_rur ///
-	reg_hc_urb reg_avgurbsh reg_urbsh  "$excel/ubranpov.xlxs", ///
-	sheet("regions") sheetreplace
+export excel region cntry_count* reg_avghc_rur reg_avghc_urb reg_hc_rur ///
+	reg_hc_urb reg_avgurbsh reg_urbsh ///
+	using "$excel/ubranpov.xlsx",sheet("regions") sheetreplace firstrow(var)
+	 
+	
