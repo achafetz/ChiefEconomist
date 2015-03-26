@@ -134,7 +134,8 @@ use "$output/urbanpov.dta", clear
 	lab var data10 `"Total Poverty (Avg Annual Rate of Population Change over past 5 years)"'
 		rename data10 totpov
 *export
-	export excel "$excel/ubranpov.xlsx", firstrow(var) sheet("UN_countries_all") sheetreplace
+	save "$output/urbanpovlong.dta", replace
+	export excel "$excel/urbanpov.xlsx", firstrow(var) sheet("UN_countries_all") sheetreplace
 		
 *remove years outside out focus range
 	drop if year<2009 | year>2012
@@ -205,13 +206,13 @@ use "$output/urbanpov.dta", clear
 		urbpov_latest urbpov_latest_yr rurpov_latest rurpov_latest_yr
 
 *save
-	save "$output/urbanpovlong.dta", replace
-	export excel "$excel/ubranpov.xlsx", firstrow(var) sheet("countries") sheetreplace
+	save "$output/urbanpov_reg.dta", replace
+	export excel "$excel/urbanpov.xlsx", firstrow(var) sheet("countries") sheetreplace
 	
 ********************************************************************************
 ********************************************************************************
 
-use "$output/urbanpovlong.dta", clear
+use "$output/urbanpov_reg.dta", clear
 
 // REGIONAL DATA //
 
@@ -281,6 +282,85 @@ use "$output/urbanpovlong.dta", clear
 
 export excel region cntry_count* reg_avghc_rur reg_avghc_urb reg_hc_rur ///
 	reg_hc_urb reg_avgurbsh reg_urbsh ///
-	using "$excel/ubranpov.xlsx",sheet("regions") sheetreplace firstrow(var)
+	using "$excel/urbanpov.xlsx",sheet("regions") sheetreplace firstrow(var)
 	 
+********************************************************************************
+********************************************************************************
+
+// Figures //
+	 
+** Urban Percent by Region **
+
+use "$output/urbanpovlong.dta", clear
+
+* create average for each region & year
+	egen region_yrly_avg = mean(urbprop), by(year region) 
+		lab var region_yrly_avg "Avg % urban poor by region & year"
+		
+*graph regional trends (all developing, single plot)
+	sort region year
+	twoway (connected region_yrly_avg year if region==1, msymbol(O)) ///
+		(connected region_yrly_avg year if region==2, msymbol(D)) ///	
+		(connect region_yrly_avg year if region==3, msymbol(T)) ///
+		(connect region_yrly_avg year if region==4, msymbol(S)) ///
+		(connect region_yrly_avg year if region==5, msymbol(O) mfcolor(white)) /// 
+		(connect region_yrly_avg year if region==6, msymbol(D) mfcolor(white)), ///
+		title("Mean Urban Population Percentage") ///
+		sub("Developing countries, 1950-2050") ///
+		note("Sources: UN, World Bank/WDI, & USAID") 	///
+		legend(order (1 "East Asia & Pacific" 2 "Europe & Central Asia" ///
+			3 "Latin America & Caribbean" 4 "Middle East & North Africa" ///
+			5 "South Asia" 6 "Sub-Saharan Africa") ///
+		size(small)) ///
+		ytitle("Percent") ///
+		ylabel(0(20)80) ///
+		yline(50, lpattern(dash) lcolor(gs12)) /// 
+		xlabel(1950(25)2050) ///
+		xline(2015, lcolor(gs14))
+	graph export "$graph/urbanpop_reg_alldev.pdf", replace
+
+*save variable labels
+		foreach v of var * {
+				local l`v' : variable label `v'
+					if `"`l`v''"' == "" {
+					local l`v' "`v'"
+				}
+		}
+	*end	
+* create regional urban proportion
+	collapse (sum) urbpop totpop, by(year region)
 	
+*re-attach variable labels
+		foreach v of var * {
+			label var `v' "`l`v''"
+		}
+		*end
+*clean
+	drop if region==.
+	drop if urbpop==0
+	
+* create regional urban proportion variable
+	gen reg_urbprop = (urbpop/totpop)*100
+		lab var reg_urbprop "Regional Proportion of Pop in Urban areas"
+
+*graph regional trends (all developing, single plot)
+	sort region year
+	twoway (connected reg_urbprop year if region==1, msymbol(O)) ///
+		(connected reg_urbprop year if region==2, msymbol(D)) ///	
+		(connect reg_urbprop year if region==3, msymbol(T)) ///
+		(connect reg_urbprop year if region==4, msymbol(S)) ///
+		(connect reg_urbprop year if region==5, msymbol(O) mfcolor(white)) /// 
+		(connect reg_urbprop year if region==6, msymbol(D) mfcolor(white)), ///
+		title("Regional Urban Population Percentage") ///
+		sub("Developing countries, 1950-2050") ///
+		note("Sources: UN, World Bank/WDI, & USAID") 	///
+		legend(order (1 "East Asia & Pacific" 2 "Europe & Central Asia" ///
+			3 "Latin America & Caribbean" 4 "Middle East & North Africa" ///
+			5 "South Asia" 6 "Sub-Saharan Africa") ///
+		size(small)) ///
+		ytitle("Percent") ///
+		ylabel(0(20)80) ///
+		yline(50, lpattern(dash) lcolor(gs12)) /// 
+		xlabel(1950(25)2050) ///
+		xline(2015, lcolor(gs14))
+		graph export "$graph/urbanpop_reglvl_alldev.pdf", replace
