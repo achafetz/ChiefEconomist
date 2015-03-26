@@ -201,8 +201,13 @@ use "$output/urbanpov.dta", clear
 		urbpop2010 rurpop2010 totpop2010 totpov_latest totpov_latest_yr ///
 		urbpov_latest urbpov_latest_yr rurpov_latest rurpov_latest_yr
 
+*save
+	save "$output/urbanpovlong.dta", replace
+	export excel "$excel/ubranpov.xlxs", sheet("countries") sheetreplace
 ********************************************************************************
 ********************************************************************************
+
+use "$output/urbanpovlong.dta", clear
 
 // REGIONAL DATA //
 		
@@ -216,6 +221,12 @@ use "$output/urbanpov.dta", clear
 		lab var rurpov_num "Number of rural poor"
 	gen urbpov_num = urbpov_latest * urbpop2010 
 		lab var urbpov_num "Number of urban poor"
+	gen totpov_num = totpov_latest * totpop2010
+		lab var totpov_num "Number of total poor"
+
+*country level urban share of poor
+	gen urbsh = (urbpov_num/totpov_num)*100
+		lab var urbsh "Urban share of poverty"
 		
 *collapse to regional level
 	*save variable labels
@@ -225,9 +236,9 @@ use "$output/urbanpov.dta", clear
 					local l`v' "`v'"
 				}
 		}
-	*emd
+	*end
 	collapse (max) cntry_count (sum) rurpov_latest urbpov_latest ///
-		rurpov_num urbpov_num rurpop2010 urbpop2010, by(region) 
+		rurpov_num urbpov_num totpov_num urbsh rurpop2010 urbpop2010, by(region) 
 	drop if region==.
 	*re-attach variable labels
 		foreach v of var * {
@@ -247,3 +258,15 @@ use "$output/urbanpov.dta", clear
 	gen reg_hc_urb = urbpov_num/urbpop2010
 		lab var reg_hc_urb "Urban headcount for the region"
 	format reg_hc* %9.1fc
+	
+*Urban share average
+	
+	gen reg_avgurbsh = urbsh/cntry_count
+		lab var reg_avgurbsh "Regional average urban share of poverty"
+	gen reg_urbsh = (urbpov_num/totpov_num)*100
+		lab var reg_avgurbsh "Regional urban share of poverty"
+	format reg_avgurbsh reg_urbsh %9.1fc
+
+export excel reg_avghc_rur reg_avghc_urb reg_hc_rur ///
+	reg_hc_urb reg_avgurbsh reg_urbsh  "$excel/ubranpov.xlxs", ///
+	sheet("regions") sheetreplace
