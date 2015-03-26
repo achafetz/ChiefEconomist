@@ -4,6 +4,7 @@
 **     Aaron Chafetz     **
 **     USAID/E3/PLC      **
 **     Feb 27, 2014      **
+**    updated 5.26.14    **
 ***************************
 
 /* Data sources
@@ -140,7 +141,7 @@ note: Compiled Feb 19, 2014 ///
 
 	drop regiontxt classtxt country_nospace
 
-	order index country wbcode wbnum region inclvl usaid ftf
+	order index wbcountry wbcode wbnum region inclvl usaid ftf
 
 	save "$output/countries.dta", replace
 
@@ -158,7 +159,7 @@ note: Source: Povcal Net
 *Urban poverty below natl poverty line
 	import excel "$data/Urban population below national poverty line.xls", sheet("povcaledit") firstrow clear
 		gen type = 8
-		save "$output/urban pov.dta", replace
+		save "$output/urbpov.dta", replace
 *Rural poverty below natl poverty line
 	import excel "$data/Rural population below national poverty line.xls", sheet("povcaledit") firstrow clear
 		gen type = 9
@@ -168,7 +169,7 @@ note: Source: Povcal Net
 		gen type = 10
 		save "$output/totalpov.dta", replace
 *combine
-	use "$output/urban pov.dta", replace
+	use "$output/urbpov.dta", replace
 	append using "$output/ruralpov.dta"
 	append using "$output/totalpov.dta"
 
@@ -271,8 +272,13 @@ note: Source: Povcal Net
 		
 	lab var type "Dataset"
 	lab def type 1 "Urban proportion" 2 "Urban Population" 3 "Rural Population" ///
-			4 "Total Population" 5 "Urban Growth Rate" 6 "Rural Growth Rate" ///
-			7 "Total Growth Rate" 8 "Urban Poverty" 9 "Rural Poverty" 10 "Total Poverty"
+		4 "Total Population" ///
+		5 "Urban Growth Rate (Avg Annual Rate of Population Change over past 5 years)" ///
+		6 "Rural Growth Rate (Avg Annual Rate of Population Change over past 5 years)" ///
+		7 "Total Growth Rate(Avg Annual Rate of Population Change over past 5 years)" ///
+		8 "Urban Poverty" ///
+		9 "Rural Poverty" ///
+		10 "Total Poverty"
 	lab val type type
 
 	drop Note CountryCode
@@ -301,6 +307,7 @@ note: Source: Povcal Net
 		y1994 y1995 y1996 y1997 y1998 y1999 y2000 y2001 y2002 y2003 y2004 y2005 /// 
 		y2006 y2007 y2008 y2009 y2010 y2011 y2012 y2013
 	sort type wbnum
+	drop wbcountry usaidcountry uncountry
 
 *label variables
 	lab var country "Country"
@@ -323,10 +330,20 @@ note: Source: Povcal Net
 
 *clear out intermediary .dta files
 	cd "$projectpath\UrbanPoverty\StataOutput\"
+	/*
 	fs *
 	foreach f in `r(files)'{
 		di "removing `f'"
 		erase "`f'"
+		}
+		*end
+	*/	
+	local intfiles usaid ftf un wb countries urbpov ruralpov totalpov povcal ///
+		urbanproportion urbanpop ruralpop totalpop urbangrowth ruralgrowth ///
+		totalgrowth growthcombined uncombine
+	foreach f of local intfiles{
+		di "removing `f'"
+		erase "`f'.dta"
 		}
 		*end
 *save
@@ -336,67 +353,8 @@ note: Source: Povcal Net
 ********************************************************************************
 ********************************************************************************
 
-// Table //
-
-** Snapshoot of Urban & Rural Headcount Ratio, Urban Share of the Poor **
-	* latest observation between 2009-2012
-	
-use "$output/urbanpov.dta", clear
-
-*urban poverty
-	keep if type==8
-	drop type
-* remove years not in povcal dataset
-	drop y1950-y2008 y2013-y2050
-
-*reshape to long to have 1 urban poverty variable & 1 year variable
-	reshape long y, i(wbnum) j(year)
-		rename y urbpoor
-		lab var urbpoor "Proportion of urban population below $1.25 (PPP) per day "
-		lab var year "Year"
-		order wbnum country wbcode year
-*save
-	save "$output/urbpov_long.dta", replace
-
-use "$output/urbanpov.dta", clear
-
-*urban poverty
-	keep if type==9
-	drop type
-* remove years not in povcal dataset
-	drop y1950-y2008 y2013-y2050
-
-*reshape to long to have 1 rural poverty variable & 1 year variable
-	reshape long y, i(wbnum) j(year)
-		rename y rurpoor
-		lab var rurpoor "Proportion of rural population below $1.25 (PPP) per day "
-		lab var year "Year"
-		order wbnum country wbcode year
-*save
-	save "$output/rurpov_long.dta", replace
-
-use "$output/urbanpov.dta", clear
-	
-*total poverty
-	keep if type==10
-	drop type
-* remove years not in povcal dataset
-	drop y1950-y2008 y2013-y2050
-
-*reshape to long to have 1 total poverty variable & 1 year variable
-	reshape long y, i(wbnum) j(year)
-		rename y totpoor
-		lab var totpoor "Proportion of population below $1.25 (PPP) per day"
-		lab var year "Year"
-		order wbnum country wbcode year
-*save
-	save "$output/totpov_long.dta", replace
-
-********************************************************************************
-********************************************************************************
-
-
 // Figures //
+
 
 ** Urban poverty over time **
 
@@ -742,7 +700,7 @@ use "$output/urbanpov.dta", clear
 
 *merge with rural population
 	merge 1:1 wbnum year using "$output/ruralpop_long", nogen
-	
+	erase "$output/ruralpop_long"
 *generate ratio
 	gen urbruralratio = urbpop/ruralpop
 		lab var urbruralratio "Ratio of Urban to Rural Population"
