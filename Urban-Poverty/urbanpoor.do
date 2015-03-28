@@ -9,7 +9,6 @@
 
 /* Data sources
 	- UN
-	- Povcal Net
 	- Feed the Future
 	- USAID/FACTS Info
 	- World Bank
@@ -29,7 +28,8 @@ set more off
 
 * Determine path
 * change your project path to where you want the project folder to be created
-	global projectpath "U:\Chief Economist Work\" //ac
+	*global projectpath "U:\Chief Economist Work\" //ac
+	global projectpath "/Users/Aaron/Desktop" //ac home
 	cd "$projectpath"
 
 * Run a macro to set up study folder
@@ -41,7 +41,7 @@ set more off
 			display in yellow "Project directory named: `dir' created"
 			}
 		else disp as error "`dir' already exists, not created."
-		cd "$projectpath\`dir'"
+		cd "$projectpath/`dir'"
 		}
 	* end
 
@@ -59,10 +59,10 @@ set more off
 	*end
 
 * Set Globals based on path above
-	global data "$projectpath\UrbanPoverty\RawData\"
-	global output "$projectpath\UrbanPoverty\StataOutput\"
-	global graph "$projectpath\UrbanPoverty\StataFigures\"
-	global excel "$projectpath\UrbanPoverty\ExcelOutput\"
+	global data "$projectpath/UrbanPoverty/RawData"
+	global output "$projectpath/UrbanPoverty/StataOutput"
+	global graph "$projectpath/UrbanPoverty/StataFigures"
+	global excel "$projectpath/UrbanPoverty/ExcelOutput"
 
 * install the confirm directory ado if not already installed
 	local required_ados fs    
@@ -149,10 +149,10 @@ note: Compiled Feb 19, 2014 ///
 ********************************************************************************
 ********************************************************************************
 
-// POVCAL DATA: IMPORT AND CLEANING  //
+// UN Data 1: IMPORT AND CLEANING  //
 
 note: Proportion of population below $1.25 (PPP)) per day
-note: Source: Povcal Net
+note: Source: UN
 
 ** Import **
 
@@ -194,12 +194,12 @@ note: Source: Povcal Net
 			7 "Total Growth Rate" 8 "Urban Poverty" 9 "Rural Poverty" 10 "Total Poverty"
 		lab val type type
 
-	save "$output/povcal.dta", replace
+	save "$output/povcal.dta", replace //not actually povcal data
 
 ********************************************************************************
 ********************************************************************************
 
-// UN DATA: IMPORT AND CLEANING //
+// UN DATA 2: IMPORT AND CLEANING //
 
 ** Import & Combine **
 	note: source: UN Population Division, June 2014
@@ -215,23 +215,23 @@ note: Source: Povcal Net
 	gen type = 2
 	save "$output/urbanpop.dta", replace	
 *rural population
-	import excel "$data/WUP2014-F04-Rural_Population", sheet("DATA") cellrange(A17:Y290) firstrow clear
+	import excel "$data/WUP2014-F04-Rural_Population.xls", sheet("DATA") cellrange(A17:Y290) firstrow clear
 	gen type = 3
 	save "$output/ruralpop.dta", replace
 *total population
-	import excel "$data/WUP2014-F05-Total_Population", sheet("DATA") cellrange(A17:Y290) firstrow clear
+	import excel "$data/WUP2014-F05-Total_Population.xls", sheet("DATA") cellrange(A17:Y290) firstrow clear
 	gen type = 4
 	save "$output/totalpop.dta", replace
 *urban growth rate
-	import excel "$data/WUP2014-F06-Urban_Growth_Rate", sheet("DATA") cellrange(A17:X290) firstrow clear
+	import excel "$data/WUP2014-F06-Urban_Growth_Rate.xls", sheet("DATA") cellrange(A17:X290) firstrow clear
 	gen type = 5
 	save "$output/urbangrowth.dta", replace
 *rural growth rate
-	import excel "$data/WUP2014-F07-Rural_Growth_Rate", sheet("DATA") cellrange(A17:X290) firstrow clear
+	import excel "$data/WUP2014-F07-Rural_Growth_Rate.xls", sheet("DATA") cellrange(A17:X290) firstrow clear
 	gen type = 6
 	save "$output/ruralgrowth.dta", replace
 *total growth rate
-	import excel "$data/WUP2014-F08-Total_Growth_Rate", sheet("DATA") cellrange(A17:X290) firstrow clear
+	import excel "$data/WUP2014-F08-Total_Growth_Rate.xls", sheet("DATA") cellrange(A17:X290) firstrow clear
 	gen type = 7
 	save "$output/totalgrowth.dta", replace
 	
@@ -326,10 +326,10 @@ note: Source: Povcal Net
 		lab var group "Country Group (2014)"
 *drop non-developing countries
 	tab country if group==. //list all non-developing countries dropping
-	drop if group==. // only developing countries remain in dataset
+	drop if group==. // now, only developing countries remain in dataset
 
 *clear out intermediary .dta files
-	cd "$projectpath\UrbanPoverty\StataOutput\"
+	cd "$projectpath/UrbanPoverty/StataOutput/"
 	/*
 	fs *
 	foreach f in `r(files)'{
@@ -434,7 +434,7 @@ use "$output/urbanpov.dta", clear
 	levelsof group, local(levels)	
 	foreach g of local levels{
 		di "-> group = `: label (group) `g''"
-		*di "-> group = ‘: label (group) ‘g’’"
+		*di "-> group = ë: label (group) ëgíí"
 		tabstat eurbpoor if group==`g', by(year) s(n mean sd min max) 
 		}
 		*end	
